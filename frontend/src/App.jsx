@@ -40,13 +40,27 @@ export default function App() {
   // Handler to load a map selection and automatically trigger analysis
   const handleAnalyzeLocation = async (filename, imageUrl, gpsCoords) => {
     try {
-      const response = await fetch(imageUrl);
+      let targetUrl = imageUrl;
+      
+      // If coordinates are provided, pull the real satellite image from Esri's global servers
+      if (gpsCoords) {
+        const { lat, lon } = gpsCoords;
+        const delta = 0.008; // Bounding box size (approx 1km x 1km)
+        const bbox = `${lon - delta},${lat - delta},${lon + delta},${lat + delta}`;
+        
+        // Esri ArcGIS World Imagery Static Export REST API
+        targetUrl = `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/export?bbox=${bbox}&bboxSR=4326&imageSR=4326&size=512,512&format=jpg&f=image`;
+      }
+      
+      const response = await fetch(targetUrl);
+      if (!response.ok) throw new Error("Failed to retrieve satellite imagery from Esri GIS server");
+      
       const blob = await response.blob();
-      const fileObject = new File([blob], filename, { type: "image/png" });
+      const fileObject = new File([blob], filename, { type: "image/jpeg" });
       
       setActiveHistoryItem({
         filename,
-        fileUrl: imageUrl,
+        fileUrl: targetUrl,
         fileObject,
         isMapSelection: true,
         gps: gpsCoords,
