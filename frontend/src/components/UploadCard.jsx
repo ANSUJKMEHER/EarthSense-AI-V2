@@ -72,26 +72,50 @@ export default function UploadCard({ onPredictionSuccess, activeHistoryItem, cle
   // Manual Coordinate Input state if no GPS coordinates found
   const [manualGps, setManualGps] = useState({ lat: "", lon: "" });
   const [gpsUsed, setGpsUsed] = useState(null);
+  
+  // State to trigger auto-submit for map selections
+  const [autoSubmitTrigger, setAutoSubmitTrigger] = useState(null);
 
-  // Watch for active history item selected from App sidebar
+  // Watch for active history item selected from App sidebar or map click
   useEffect(() => {
     if (activeHistoryItem) {
-      setFile(activeHistoryItem.fileUrl || null);
-      setRes(activeHistoryItem.res);
-      setGpsUsed(activeHistoryItem.res.gps || null);
+      if (activeHistoryItem.res === null && activeHistoryItem.fileObject) {
+        // Map Selection Trigger (needs fresh model run)
+        setFile(activeHistoryItem.fileObject);
+        setRes(null);
+        setGpsUsed(activeHistoryItem.gps || null);
+        setAutoSubmitTrigger(Date.now());
+      } else {
+        // Sidebar History Reload (already has predictions)
+        setFile(activeHistoryItem.fileUrl || null);
+        setRes(activeHistoryItem.res);
+        setGpsUsed(activeHistoryItem.res.gps || null);
+      }
       setError(null);
       
-      if (activeHistoryItem.fileUrl) {
+      // Calculate image size
+      const currentSrc = activeHistoryItem.fileObject 
+        ? URL.createObjectURL(activeHistoryItem.fileObject) 
+        : activeHistoryItem.fileUrl;
+        
+      if (currentSrc) {
         const img = new Image();
         img.onload = () => {
           setImageSize({ width: img.width, height: img.height });
         };
-        img.src = activeHistoryItem.fileUrl;
+        img.src = currentSrc;
       } else {
         setImageSize(null);
       }
     }
   }, [activeHistoryItem]);
+
+  // Effect to handle auto-submit when files are loaded from map click
+  useEffect(() => {
+    if (autoSubmitTrigger && file && typeof file !== "string") {
+      submit();
+    }
+  }, [autoSubmitTrigger]);
 
   const handleDrag = (e) => {
     e.preventDefault();

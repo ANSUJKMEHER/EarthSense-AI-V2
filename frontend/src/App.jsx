@@ -1,7 +1,7 @@
-// frontend/src/App.jsx
 import React, { useEffect, useState } from "react";
 import UploadCard from "./components/UploadCard";
 import BatchUpload from "./components/BatchUpload";
+import InteractiveMap from "./components/InteractiveMap";
 import "./App.css";
 
 export default function App() {
@@ -36,6 +36,26 @@ export default function App() {
     const interval = setInterval(checkBackend, 30000);
     return () => clearInterval(interval);
   }, [API_URL]);
+
+  // Handler to load a map selection and automatically trigger analysis
+  const handleAnalyzeLocation = async (filename, imageUrl, gpsCoords) => {
+    try {
+      const response = await fetch(imageUrl);
+      const blob = await response.blob();
+      const fileObject = new File([blob], filename, { type: "image/png" });
+      
+      setActiveHistoryItem({
+        filename,
+        fileUrl: imageUrl,
+        fileObject,
+        isMapSelection: true,
+        gps: gpsCoords,
+        res: null // Tell UploadCard it needs to perform a fresh prediction
+      });
+    } catch (err) {
+      console.error("Failed to load map preset image", err);
+    }
+  };
 
   // Handler to record a new single image prediction
   const handlePredictionSuccess = (filename, result, fileObject) => {
@@ -187,6 +207,7 @@ export default function App() {
           
           {/* Main Column */}
           <main style={{ display: "flex", flexDirection: "column", gap: "30px" }}>
+            <InteractiveMap onAnalyzeLocation={handleAnalyzeLocation} />
             <UploadCard 
               onPredictionSuccess={handlePredictionSuccess} 
               activeHistoryItem={activeHistoryItem}
