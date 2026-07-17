@@ -135,7 +135,7 @@ def make_gradcam_pil(img_pil, class_to_explain=0):
     import cv2
     heatmap = cv2.resize(heatmap, img_pil.size)
     overlay = overlay_heatmap_on_pil(img_pil, heatmap)
-    return overlay
+    return overlay.convert("RGB")
 
 @app.route("/ping")
 def ping():
@@ -267,7 +267,6 @@ def predict():
     gps_coords = extract_gps_coordinates(img)
 
     gradcam_b64 = None
-    gradcam_error = None
     t_gc_start = time.time()
     try:
         class_to_explain = 0 if prob_def >= prob_non_def else 1
@@ -276,9 +275,7 @@ def predict():
         t_gc = time.time() - t_gc_start
         logger.info("predict: gradcam done (%.3fs)", t_gc)
     except Exception as e:
-        import traceback
         t_gc = time.time() - t_gc_start
-        gradcam_error = traceback.format_exc()
         logger.exception("predict: gradcam failed (%.3fs) %s", t_gc, str(e))
         gradcam_b64 = None
 
@@ -295,7 +292,6 @@ def predict():
         "spectral_indices": spectral_indices,
         "gps": gps_coords,
         "gradcam_base64": gradcam_b64,
-        "gradcam_error": gradcam_error,
         "timings": {"total": round(total_time, 3), "predict": round(t_pred, 3), "gradcam": round(t_gc if 't_gc' in locals() else 0.0, 3)}
     })
 
