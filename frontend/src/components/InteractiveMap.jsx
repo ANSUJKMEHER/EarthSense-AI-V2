@@ -134,7 +134,7 @@ export default function InteractiveMap({ onAnalyzeLocation }) {
         </button>
       `;
 
-      customMarker.bindPopup(popupContent).openPopup();
+      customMarker.bindPopup(popupContent);
 
       customMarker.on("popupopen", () => {
         const btn = document.getElementById("map-btn-custom");
@@ -151,6 +151,8 @@ export default function InteractiveMap({ onAnalyzeLocation }) {
           };
         }
       });
+
+      customMarker.openPopup();
     });
 
     return () => {
