@@ -20,7 +20,8 @@ tf.config.threading.set_inter_op_parallelism_threads(1)
 from utils import (
     load_image_from_bytes, preprocess_pil,
     green_ratio_pil, array_to_base64_pil,
-    overlay_heatmap_on_pil
+    overlay_heatmap_on_pil, calculate_spectral_indices,
+    extract_gps_coordinates
 )
 from dotenv import load_dotenv
 
@@ -255,6 +256,8 @@ def predict():
     confidence = round(max(prob_def, prob_non_def) * 100.0, 3)
 
     veg_frac, veg_norm = green_ratio_pil(img)
+    spectral_indices = calculate_spectral_indices(img)
+    gps_coords = extract_gps_coordinates(img)
 
     gradcam_b64 = None
     t_gc_start = time.time()
@@ -279,6 +282,8 @@ def predict():
         "prob_non_deforested": round(prob_non_def, 4),
         "veg_fraction": round(veg_frac, 4),
         "veg_norm": round(veg_norm, 4),
+        "spectral_indices": spectral_indices,
+        "gps": gps_coords,
         "gradcam_base64": gradcam_b64,
         "timings": {"total": round(total_time, 3), "predict": round(t_pred, 3), "gradcam": round(t_gc if 't_gc' in locals() else 0.0, 3)}
     })
@@ -299,13 +304,17 @@ def batch_predict():
             prob_def = 1.0 - prob_non_def
             label = "Deforested" if prob_def >= prob_non_def else "Not Deforested"
             veg_frac, veg_norm = green_ratio_pil(img)
+            spectral_indices = calculate_spectral_indices(img)
+            gps_coords = extract_gps_coordinates(img)
             results.append({
                 "filename": f.filename,
                 "label": label,
                 "confidence": round(max(prob_def, prob_non_def), 4),
                 "prob_deforested": round(prob_def, 4),
                 "prob_non_deforested": round(prob_non_def, 4),
-                "veg_fraction": round(veg_frac, 4)
+                "veg_fraction": round(veg_frac, 4),
+                "spectral_indices": spectral_indices,
+                "gps": gps_coords
             })
         except Exception as e:
             logger.exception("batch_predict: error for file %s", getattr(f, "filename", "<nofile>"))

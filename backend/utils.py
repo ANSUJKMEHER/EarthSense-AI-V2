@@ -3,6 +3,7 @@ import io
 import base64
 import numpy as np
 from PIL import Image
+from PIL.ExifTags import TAGS, GPSTAGS
 import cv2
 
 IMAGE_SIZE = 224
@@ -27,6 +28,90 @@ def green_ratio_pil(img):
     frac = green_mask.sum() / (arr.shape[0] * arr.shape[1])
     norm_green = np.clip((g - (r + b) / 2) / 255.0, 0, 1).mean()
     return float(frac), float(norm_green)
+
+def calculate_spectral_indices(img):
+    """Calculate professional RGB spectral vegetation indices: VARI, GLI, and NGRDI."""
+    img = img.convert("RGB")
+    arr = np.array(img).astype(float)
+    if arr.size == 0:
+        return {"vari": 0.0, "gli": 0.0, "ngrdi": 0.0}
+    r, g, b = arr[:, :, 0], arr[:, :, 1], arr[:, :, 2]
+    
+    # VARI: (g - r) / (g + r - b)
+    denom_vari = g + r - b
+    denom_vari[denom_vari == 0] = 1e-5
+    vari = (g - r) / denom_vari
+    
+    # GLI: (2*g - r - b) / (2*g + r + b)
+    denom_gli = 2 * g + r + b
+    denom_gli[denom_gli == 0] = 1e-5
+    gli = (2 * g - r - b) / denom_gli
+    
+    # NGRDI: (g - r) / (g + r)
+    denom_ngrdi = g + r
+    denom_ngrdi[denom_ngrdi == 0] = 1e-5
+    ngrdi = (g - r) / denom_ngrdi
+    
+    return {
+        "vari": float(np.clip(vari.mean(), -1.0, 1.0)),
+        "gli": float(np.clip(gli.mean(), -1.0, 1.0)),
+        "ngrdi": float(np.clip(ngrdi.mean(), -1.0, 1.0))
+    }
+
+def get_exif_data(img):
+    exif_data = {}
+    try:
+        info = img._getexif()
+        if info:
+            for tag, value in info.items():
+                decoded = TAGS.get(tag, tag)
+                if decoded == "GPSInfo":
+                    gps_data = {}
+                    for t in value:
+                        sub_decoded = GPSTAGS.get(t, t)
+                        gps_data[sub_decoded] = value[t]
+                    exif_data[decoded] = gps_data
+                else:
+                    exif_data[decoded] = value
+    except Exception:
+        pass
+    return exif_data
+
+def convert_to_degrees(value):
+    """Convert GPS coordinates stored as EXIF tuples to decimal degrees."""
+    try:
+        d = float(value[0])
+        m = float(value[1])
+        s = float(value[2])
+        return d + (m / 60.0) + (s / 3600.0)
+    except Exception:
+        return None
+
+def extract_gps_coordinates(img):
+    """Extract decimal GPS coordinates from satellite JPEG EXIF tags."""
+    try:
+        exif = get_exif_data(img)
+        gps_info = exif.get("GPSInfo")
+        if not gps_info:
+            return None
+
+        gps_latitude = gps_info.get("GPSLatitude")
+        gps_latitude_ref = gps_info.get("GPSLatitudeRef")
+        gps_longitude = gps_info.get("GPSLongitude")
+        gps_longitude_ref = gps_info.get("GPSLongitudeRef")
+
+        if gps_latitude and gps_latitude_ref and gps_longitude and gps_longitude_ref:
+            lat = convert_to_degrees(gps_latitude)
+            lon = convert_to_degrees(gps_longitude)
+            if lat is not None and lon is not None:
+                if gps_latitude_ref != "N":
+                    lat = 0 - lat
+                if gps_longitude_ref != "E":
+                    lon = 0 - lon
+                return {"lat": round(lat, 6), "lon": round(lon, 6)}
+    except Exception:
+        pass
+    return None
 
 def array_to_base64_pil(img: Image.Image, fmt="JPEG"):
     buffered = io.BytesIO()

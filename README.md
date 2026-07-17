@@ -6,6 +6,21 @@ EarthSense AI is an award-winning, production-ready satellite imagery analysis p
 
 ---
 
+### ⚖️ Hackathon Prototype Disclosure & Version 2.0 Delta
+
+This repository represents **Version 2.0** of EarthSense AI, built specifically for this hackathon. 
+
+*   **Foundation:** This project builds upon an earlier, basic local prototype (V1.0) which performed simple single-image deforestation predictions on a local Flask server.
+*   **Hackathon Enhancements (Version 2.0 Delta):** During this hackathon, we significantly expanded and re-engineered the platform into a production-grade product. Key updates include:
+    *   **Scientific Spectral Remote Sensing:** Integrated three standard RGB remote sensing indices (**GLI**, **VARI**, and **NGRDI**) to calculate biomass density and canopy coverage fractions.
+    *   **Geospatial Metadata Extraction:** Added automated EXIF tag parsing in Python to extract lat/lon coordinates from high-res satellite captures and map them directly on OpenStreetMap.
+    *   **Interactive Comparison Slider:** Created a curtain comparison slider allowing judges to slide across the attribution boundaries between raw satellite RGB values and Grad-CAM heatmaps.
+    *   **Persistent Dashboard Sessions:** Created a local history logger using `localStorage` to cache prediction states, metadata, and coordinates, allowing session reloads.
+    *   **Production Deployment & Optimizations:** Configured memory-limiting thread settings and compile-free Keras models on Render, staying stable within free tier 512MB RAM constraints, and compiled Vite assets for Vercel edge deployment.
+    *   **Document Generation:** Integrated a clean CSS print report tool exporting full telemetry logs as PDFs.
+
+---
+
 ## 📖 Table of Contents
 1. [Problem Statement & Solution](#-problem-statement--solution)
 2. [Platform Architecture](#%EF%B8%8F-platform-architecture)

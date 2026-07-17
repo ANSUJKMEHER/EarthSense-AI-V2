@@ -56,6 +56,8 @@ export default function App() {
       confidence: result.confidence,
       veg_fraction: result.veg_fraction,
       veg_norm: result.veg_norm,
+      spectral_indices: result.spectral_indices,
+      gps: result.gps,
       gradcam_base64: result.gradcam_base64,
       fileUrl: fileUrl, // only valid during current browser session
     };
@@ -80,6 +82,8 @@ export default function App() {
         confidence: item.confidence,
         veg_fraction: item.veg_fraction,
         veg_norm: item.veg_norm,
+        spectral_indices: item.spectral_indices,
+        gps: item.gps,
         gradcam_base64: item.gradcam_base64,
       }
     });
