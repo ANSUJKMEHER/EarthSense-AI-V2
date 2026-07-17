@@ -112,7 +112,7 @@ def make_gradcam_pil(img_pil, class_to_explain=0):
     img_array = np.array(img_pil.resize((224,224))).astype(np.float32)/255.0
     x = np.expand_dims(img_array, 0)
 
-    grad_model = tf.keras.models.Model([model.inputs], [model.get_layer(LAST_CONV).output, model.output])
+    grad_model = tf.keras.models.Model(model.inputs, [model.get_layer(LAST_CONV).output, model.output])
     with tf.GradientTape() as tape:
         conv_outputs, preds = grad_model(x)
         if model.output_shape[-1] == 1:
