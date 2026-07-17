@@ -73,50 +73,6 @@ export default function UploadCard({ onPredictionSuccess, activeHistoryItem, cle
   const [manualGps, setManualGps] = useState({ lat: "", lon: "" });
   const [gpsUsed, setGpsUsed] = useState(null);
   
-  // State to trigger auto-submit for map selections
-  const [autoSubmitTrigger, setAutoSubmitTrigger] = useState(null);
-
-  // Watch for active history item selected from App sidebar or map click
-  useEffect(() => {
-    if (activeHistoryItem) {
-      if (activeHistoryItem.res === null && activeHistoryItem.fileObject) {
-        // Map Selection Trigger (needs fresh model run)
-        setFile(activeHistoryItem.fileObject);
-        setRes(null);
-        setGpsUsed(activeHistoryItem.gps || null);
-        setAutoSubmitTrigger(Date.now());
-      } else {
-        // Sidebar History Reload (already has predictions)
-        setFile(activeHistoryItem.fileUrl || null);
-        setRes(activeHistoryItem.res);
-        setGpsUsed(activeHistoryItem.res.gps || null);
-      }
-      setError(null);
-      
-      // Calculate image size
-      const currentSrc = activeHistoryItem.fileObject 
-        ? URL.createObjectURL(activeHistoryItem.fileObject) 
-        : activeHistoryItem.fileUrl;
-        
-      if (currentSrc) {
-        const img = new Image();
-        img.onload = () => {
-          setImageSize({ width: img.width, height: img.height });
-        };
-        img.src = currentSrc;
-      } else {
-        setImageSize(null);
-      }
-    }
-  }, [activeHistoryItem]);
-
-  // Effect to handle auto-submit when files are loaded from map click
-  useEffect(() => {
-    if (autoSubmitTrigger && file && typeof file !== "string") {
-      submit();
-    }
-  }, [autoSubmitTrigger]);
-
   const handleDrag = (e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -161,25 +117,26 @@ export default function UploadCard({ onPredictionSuccess, activeHistoryItem, cle
     }
   };
 
-  const submit = async () => {
-    if (!file) return setError("Please select or drop an image first.");
+  const submit = async (fileToSubmit = null) => {
+    const targetFile = fileToSubmit || file;
+    if (!targetFile) return setError("Please select or drop an image first.");
     setLoading(true);
     setRes(null);
     setGpsUsed(null);
     setManualGps({ lat: "", lon: "" });
     setError(null);
     try {
-      if (typeof file === "string") {
+      if (typeof targetFile === "string") {
         setLoading(false);
         return;
       }
-      const data = await predictImage(file);
+      const data = await predictImage(targetFile);
       setRes(data);
       if (data.gps) {
         setGpsUsed(data.gps);
       }
       if (onPredictionSuccess) {
-        onPredictionSuccess(file.name, data, file);
+        onPredictionSuccess(targetFile.name, data, targetFile);
       }
     } catch (err) {
       console.error(err);
@@ -187,6 +144,41 @@ export default function UploadCard({ onPredictionSuccess, activeHistoryItem, cle
     }
     setLoading(false);
   };
+
+  // Watch for active history item selected from App sidebar or map click
+  useEffect(() => {
+    if (activeHistoryItem) {
+      if (activeHistoryItem.res === null && activeHistoryItem.fileObject) {
+        // Map Selection Trigger (needs fresh model run)
+        setFile(activeHistoryItem.fileObject);
+        setRes(null);
+        setGpsUsed(activeHistoryItem.gps || null);
+        // Execute prediction immediately using the passed fileObject to bypass state updates
+        submit(activeHistoryItem.fileObject);
+      } else {
+        // Sidebar History Reload (already has predictions)
+        setFile(activeHistoryItem.fileUrl || null);
+        setRes(activeHistoryItem.res);
+        setGpsUsed(activeHistoryItem.res.gps || null);
+      }
+      setError(null);
+      
+      // Calculate image size
+      const currentSrc = activeHistoryItem.fileObject 
+        ? URL.createObjectURL(activeHistoryItem.fileObject) 
+        : activeHistoryItem.fileUrl;
+        
+      if (currentSrc) {
+        const img = new Image();
+        img.onload = () => {
+          setImageSize({ width: img.width, height: img.height });
+        };
+        img.src = currentSrc;
+      } else {
+        setImageSize(null);
+      }
+    }
+  }, [activeHistoryItem]);
 
   const downloadGradcam = () => {
     if (!res?.gradcam_base64) return;
