@@ -169,7 +169,7 @@ def predict_nograd():
 
     t_pred_start = time.time()
     try:
-        pred = model.predict(x, verbose=0)
+        pred = model(x, training=False).numpy()
     except Exception as e:
         logger.exception("predict_nograd: model.predict failed")
         return jsonify({"error": "model prediction failed", "detail": str(e)}), 500
@@ -237,7 +237,7 @@ def predict():
 
     t_pred_start = time.time()
     try:
-        pred = model.predict(x, verbose=0)[0]
+        pred = model(x, training=False).numpy()[0]
     except Exception as e:
         logger.exception("predict: model.predict failed")
         return jsonify({"error":"model prediction failed", "detail": str(e)}), 500
@@ -299,7 +299,7 @@ def batch_predict():
             bytes_data = f.read()
             img = load_image_from_bytes(bytes_data)
             x = preprocess_pil(img)
-            pred = model.predict(x, verbose=0)[0]
+            pred = model(x, training=False).numpy()[0]
             prob_non_def = float(pred[0]) if hasattr(pred, "__len__") else float(pred)
             prob_def = 1.0 - prob_non_def
             label = "Deforested" if prob_def >= prob_non_def else "Not Deforested"
