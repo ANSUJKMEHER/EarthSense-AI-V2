@@ -1,5 +1,9 @@
 # backend/app.py
 import os
+# Configure TensorFlow environment variables BEFORE import to reduce memory overhead
+os.environ["TF_ENABLE_ONEDNN_OPTS"] = "0"
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
+
 import io
 import json
 import base64
@@ -67,6 +71,9 @@ def ensure_model():
 model_path = ensure_model()
 logger.info("Loading model from %s with compile=False", model_path)
 model = tf.keras.models.load_model(model_path, compile=False)
+
+import gc
+gc.collect()  # Force free up memory allocated during loading
 
 if os.path.exists(CLASS_IDX_PATH):
     with open(CLASS_IDX_PATH, "r") as f:
